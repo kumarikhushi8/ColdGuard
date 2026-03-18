@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: coldguard_db
+    environment:
+      POSTGRES_USER: coldguard
+      POSTGRES_PASSWORD: coldguard_secret
+      POSTGRES_DB: coldguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./backend
+    container_name: coldguard_api
+    environment:
+      DATABASE_URL: postgresql://coldguard:coldguard_secret@db:5432/coldguard
+      SECRET_KEY: dev_secret_key_change_in_prod
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+      - ./infra:/app/infra
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  simulator:
+    build: ./backend
+    container_name: coldguard_simulator
+    environment:
+      DATABASE_URL: postgresql://coldguard:coldguard_secret@db:5432/coldguard
+    depends_on:
+      - backend
+    volumes:
+      - ./backend:/app
+    command: python -m app.services.simulator
+
+  frontend:
+    build: ./frontend
+    container_name: coldguard_ui
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+
+volumes:
+  pgdata:
