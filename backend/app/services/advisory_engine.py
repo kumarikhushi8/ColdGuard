@@ -135,7 +135,6 @@ def compute_advisory(risk_score: float, risk_level: str, price_data: dict) -> tu
 
 
 async def generate_explanation(action, crop, facility_name, risk_score, price_data, urgency) -> dict:
-    settings = get_settings()
     price_str = f"₹{price_data['current_price']:.0f}/quintal" if price_data["current_price"] else "price unavailable"
     trend_str = price_data["trend"]
 
@@ -147,25 +146,17 @@ async def generate_explanation(action, crop, facility_name, risk_score, price_da
     }
     msg = fallbacks.get(action, f"Monitor your {crop} storage closely.")
 
-    if not settings.anthropic_api_key:
-        return {"en": msg, "hi": msg, "mr": msg}
-
     try:
-        import anthropic, json, re
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=400,
-            messages=[{"role": "user", "content": f"""Advisory for Indian farmer.
-Facility: {facility_name}, Crop: {crop}, Risk: {risk_score:.0%} ({urgency}),
-Price: {price_str} ({trend_str}), Decision: {action}
-Write 2 sentences in English, Hindi, Marathi. Return JSON: {{"en":"...","hi":"...","mr":"..."}}"""}]
-        )
-        match = re.search(r'\{.*\}', resp.content[0].text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
+        from deep_translator import GoogleTranslator
+        hi_translator = GoogleTranslator(source='en', target='hi')
+        mr_translator = GoogleTranslator(source='en', target='mr')
+        return {
+            "en": msg,
+            "hi": hi_translator.translate(msg),
+            "mr": mr_translator.translate(msg)
+        }
     except Exception as e:
-        logger.debug(f"Advisory explanation failed: {e}")
+        logger.debug(f"Advisory explanation translation failed: {e}")
 
     return {"en": msg, "hi": msg, "mr": msg}
 

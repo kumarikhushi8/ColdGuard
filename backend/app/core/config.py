@@ -4,7 +4,6 @@ from functools import lru_cache
 class Settings(BaseSettings):
     database_url: str = "postgresql://coldguard:coldguard_secret@localhost:5432/coldguard"
     secret_key: str = "dev_secret_key_change_in_production_min_32_chars"
-    anthropic_api_key: str = ""
     api_url: str = "http://localhost:8000"
 
     # Alert thresholds
