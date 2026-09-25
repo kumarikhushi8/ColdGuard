@@ -21,7 +21,7 @@ async def translate_alert(message: str) -> dict[str, str]:
     try:
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         resp = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-3-5-sonnet-latest",
             max_tokens=300,
             messages=[{
                 "role": "user",
