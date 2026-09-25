@@ -11,7 +11,7 @@ async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
         settings = get_settings()
-        for attempt in range(10):
+        for attempt in range(40):  # Give Render free DB up to 120s to wake up
             try:
                 _pool = await asyncpg.create_pool(
                     settings.database_url,
@@ -22,9 +22,9 @@ async def get_pool() -> asyncpg.Pool:
                 logger.info("Database connected")
                 return _pool
             except Exception as e:
-                logger.warning(f"DB connect attempt {attempt+1}/10 failed: {e}")
+                logger.warning(f"DB connect attempt {attempt+1}/40 failed: {e}")
                 await asyncio.sleep(3)
-        raise RuntimeError("Could not connect to database after 10 attempts")
+        raise RuntimeError("Could not connect to database after 40 attempts")
     return _pool
 
 async def close_pool():
