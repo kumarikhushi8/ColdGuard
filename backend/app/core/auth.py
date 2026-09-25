@@ -7,19 +7,21 @@ import secrets
 import hashlib
 from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import get_settings
-
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ─── Passwords ────────────────────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    return pwd_ctx.hash(password)
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_ctx.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+    except Exception:
+        return False
 
 
 # ─── JWT ──────────────────────────────────────────────────────────────────────
