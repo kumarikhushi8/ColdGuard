@@ -11,35 +11,21 @@ from app.ml.risk_engine import RiskResult
 
 logger = logging.getLogger(__name__)
 
+from deep_translator import GoogleTranslator
 
 async def translate_alert(message: str) -> dict[str, str]:
-    """Use Claude to translate alert into Hindi and Marathi."""
-    settings = get_settings()
-    if not settings.anthropic_api_key:
-        return {"hi": message, "mr": message}
-
+    """Use Google Translate to translate alert into Hindi and Marathi."""
     try:
-        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-        resp = client.messages.create(
-            model="claude-3-5-sonnet-latest",
-            max_tokens=300,
-            messages=[{
-                "role": "user",
-                "content": f"""Translate this cold storage alert for Indian farmers.
-Return ONLY a JSON object with keys "hi" (Hindi) and "mr" (Marathi).
-Use simple, clear language a rural farmer would understand.
-Alert: {message}"""
-            }]
-        )
-        import json, re
-        text = resp.content[0].text
-        match = re.search(r'\{.*\}', text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
+        hi_translator = GoogleTranslator(source='en', target='hi')
+        mr_translator = GoogleTranslator(source='en', target='mr')
+        
+        hi_text = hi_translator.translate(message)
+        mr_text = mr_translator.translate(message)
+        
+        return {"hi": hi_text, "mr": mr_text}
     except Exception as e:
         logger.warning(f"Translation failed: {e}")
-
-    return {"hi": message, "mr": message}
+        return {"hi": message, "mr": message}
 
 
 async def create_alert(
